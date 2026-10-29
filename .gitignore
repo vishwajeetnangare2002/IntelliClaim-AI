@@ -1,0 +1,37 @@
+
+# Python
+__pycache__/
+*.py[cod]
+*.log
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Databases
+*.db
+*.sqlite
+*.sqlite3
+
+# ML model files
+*.pkl
+*.joblib
+*.pt
+*.pth
+
+# Frontend
+node_modules/
+dist/
+build/
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
