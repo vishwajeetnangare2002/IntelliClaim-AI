@@ -1,0 +1,22 @@
+
+claim_amount,incident_type,previous_claims,days_to_report,risk_label
+5000,Vehicle Accident,0,1,0
+12000,Vehicle Accident,1,2,0
+45000,Vehicle Accident,3,20,1
+8000,Property Damage,0,2,0
+60000,Property Damage,4,30,1
+15000,Medical,1,3,0
+70000,Medical,5,25,1
+22000,Vehicle Accident,2,5,0
+90000,Property Damage,3,15,1
+3000,Medical,0,1,0
+35000,Vehicle Accident,2,12,1
+18000,Property Damage,1,4,0
+55000,Medical,4,18,1
+9000,Vehicle Accident,0,6,0
+40000,Property Damage,2,10,1
+11000,Medical,1,2,0
+65000,Vehicle Accident,5,22,1
+25000,Property Damage,1,3,0
+7500,Medical,0,1,0
+48000,Vehicle Accident,3,14,1

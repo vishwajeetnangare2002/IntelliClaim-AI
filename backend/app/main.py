@@ -7,6 +7,7 @@ from app.models.claim import Claim as ClaimModel
 from app.services.ocr_service import extract_text_from_pdf
 from app.schemas.claim import ClaimCreate,Claimstatusupdate
 from app.services.claim_extractor import extract_claim_details
+from app.services.risk_prediction_service import predict_claim_risk
 
 from typing import Literal
 
@@ -39,7 +40,14 @@ def get_health():
  
 class Claim(BaseModel):
     claim_id: str
-    amount: float=Field(ge=0)  
+    amount: float=Field(ge=0) 
+    
+class RiskPredictionRequest(BaseModel):
+    claim_amount: float = Field(gt=0)
+    incident_type: str = Field(min_length=1)
+    previous_claims: int = Field(ge=0)
+    days_to_report: int = Field(ge=0)
+     
      
 @app.post("/claims")
 def create_claim(claim: ClaimCreate,db:Session=Depends(get_db)):
@@ -237,3 +245,25 @@ async def upload_pdf(
             "status": new_claim.status
         }
     }
+
+@app.post("/claims/predict-risk")
+def predict_risk(data: RiskPredictionRequest):
+
+    try:
+        prediction = predict_claim_risk(
+            claim_amount=data.claim_amount,
+            incident_type=data.incident_type,
+            previous_claims=data.previous_claims,
+            days_to_report=data.days_to_report
+        )
+
+        return {
+            "message": "Claim risk prediction completed",
+            "prediction": prediction
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Risk prediction failed: {str(e)}"
+        )
