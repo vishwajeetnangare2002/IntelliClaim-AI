@@ -8,6 +8,12 @@ from app.services.ocr_service import extract_text_from_pdf
 from app.schemas.claim import ClaimCreate,Claimstatusupdate
 from app.services.claim_extractor import extract_claim_details
 from app.services.risk_prediction_service import predict_claim_risk
+from app.services.post_verification_fraud_service import (predict_post_verification_fraud,)
+from app.services.early_fraud_service import predict_early_fraud
+from app.services.early_fraud_service import (predict_early_fraud,)
+
+
+
 
 from typing import Literal
 
@@ -17,49 +23,103 @@ Base.metadata.create_all(bind=engine)
 
 def get_db():
     db=SessionLocal()
-    
+
     try:
         yield db
     finally:
         db.close()
-        
+
 
 @app.get("/")
 def home():
     return{
         "message":"home page created successfully"
     }
-    
+
 @app.get("/health")
 def get_health():
     return{
         "status":"healthy",
         "project":"insurance-claim-ai"
     }
- 
- 
+
+
 class Claim(BaseModel):
     claim_id: str
-    amount: float=Field(ge=0) 
-    
+    amount: float=Field(ge=0)
+
 class RiskPredictionRequest(BaseModel):
     claim_amount: float = Field(gt=0)
     incident_type: str = Field(min_length=1)
     previous_claims: int = Field(ge=0)
     days_to_report: int = Field(ge=0)
-     
-     
+
+class PostVerificationFraudRequest(BaseModel):
+    # Early submission features
+    Month: str
+    WeekOfMonth: int = Field(ge=1, le=5)
+    DayOfWeek: str
+    Make: str
+    AccidentArea: str
+    Sex: str
+    MaritalStatus: str
+    Age: int = Field(ge=0, le=120)
+    PolicyType: str
+    VehicleCategory: str
+    VehiclePrice: str
+    Deductible: int = Field(ge=0)
+    DriverRating: int = Field(ge=1, le=4)
+    AgeOfVehicle: str
+    AgeOfPolicyHolder: str
+    NumberOfCars: str
+    BasePolicy: str
+
+    # Timing and verification features
+    DayOfWeekClaimed: str
+    MonthClaimed: str
+    WeekOfMonthClaimed: int = Field(ge=0, le=5)
+    Days_Policy_Accident: str
+    Days_Policy_Claim: str
+    PastNumberOfClaims: str
+    AddressChange_Claim: str
+
+    # Investigation features
+    Fault: str
+    PoliceReportFiled: str
+    WitnessPresent: str
+    NumberOfSuppliments: str
+
+class EarlyFraudRequest(BaseModel):
+    Month: str
+    WeekOfMonth: int = Field(ge=1, le=5)
+    DayOfWeek: str
+    Make: str
+    AccidentArea: str
+    Sex: str
+    MaritalStatus: str
+    Age: int = Field(ge=0, le=120)
+    PolicyType: str
+    VehicleCategory: str
+    VehiclePrice: str
+    Deductible: int = Field(ge=0)
+    DriverRating: int = Field(ge=1, le=4)
+    AgeOfVehicle: str
+    AgeOfPolicyHolder: str
+    NumberOfCars: str
+    BasePolicy: str
+
+
 @app.post("/claims")
 def create_claim(claim: ClaimCreate,db:Session=Depends(get_db)):
     db_claim = ClaimModel(
         claim_id=claim.claim_id,
         amount=claim.amount
     )
-    
+
     db.add(db_claim)
     db.commit()
     db.refresh(db_claim)
-   
+
     return {
         "id": db_claim.id,
         "claim_id": db_claim.claim_id,
@@ -67,13 +127,13 @@ def create_claim(claim: ClaimCreate,db:Session=Depends(get_db)):
         "status": db_claim.status,
         "message": "Claim saved successfully"
     }
-    
+
 @app.get("/claims")
 def get_claims(db: Session = Depends(get_db)):
     claims = db.query(ClaimModel).all()
 
     return claims
-   
+
 @app.get("/claims/{claim_id}")
 def get_claim(claim_id: str, db: Session = Depends(get_db)):
     claim = db.query(ClaimModel).filter(
@@ -155,8 +215,8 @@ def update_claim_status(
         "status": claim.status,
         "message": "Claim status updated successfully"
     }
-    
-    
+
+
 
 
 @app.post("/documents/upload-pdf")
@@ -266,4 +326,54 @@ def predict_risk(data: RiskPredictionRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Risk prediction failed: {str(e)}"
+        )
+
+@app.post("/claims/predict-post-verification-fraud")
+def predict_post_verification_fraud_api(data: PostVerificationFraudRequest):
+
+
+    try:
+        prediction = predict_post_verification_fraud(
+            data.dict()
+        )
+
+        return {
+            "message": "Post-verification fraud prediction completed",
+            "prediction": prediction
+        }
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=422,
+            detail=str(e)
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Post-verification fraud prediction failed: {str(e)}"
+        )
+
+@app.post("/claims/predict-early-fraud")
+def predict_early_fraud_api(data: EarlyFraudRequest):
+    try:
+        prediction = predict_early_fraud(
+            data.model_dump()
+        )
+
+        return {
+            "message": "Early fraud prediction completed",
+            "prediction": prediction
+        }
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=422,
+            detail=str(e)
+        )
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Early fraud prediction failed: {str(e)}"
         )
